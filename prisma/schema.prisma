@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Sensor {
+  id       Int    @id @default(autoincrement())
+  codename String
+
+  frequency    Int   @default(5)
+  transparency Int   @default(100)
+  temperature  Float @default(20)
+
+  x Float @default(0)
+  y Float @default(0)
+  z Float @default(0)
+
+  fishes  Fish[]
+  groupId Int?
+
+  group Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  lastUpdated DateTime?
+}
+
+model Group {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+  sensors Sensor[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Fish {
+  id   Int    @id @default(autoincrement())
+  type String
+
+  count Int
+
+  sensor   Sensor? @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  sensorId Int?
+}
