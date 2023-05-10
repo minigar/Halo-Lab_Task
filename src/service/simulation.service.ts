@@ -1,11 +1,11 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue, Process, Processor } from '@nestjs/bull';
 import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { Sensor } from '@prisma/client';
 import { Queue } from 'bull';
 import { DatabaseService } from 'src/data/database.service';
 
 @Injectable()
+@Processor(process.env.SENSOR_QUEUE)
 export class SimulationService {
   constructor(
     @InjectQueue(process.env.SENSOR_QUEUE) private sensorQueue: Queue,
@@ -53,7 +53,7 @@ export class SimulationService {
     }
   }
 
-  @Cron(CronExpression.EVERY_SECOND)
+  @Process()
   async updateSensorsByFrequency() {
     const sensors = await this.db.sensor.findMany();
 
