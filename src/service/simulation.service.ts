@@ -45,7 +45,7 @@ export class SimulationService {
           data: {
             codename: sensorName,
             groupId: group.id,
-            frequency: Math.floor(Math.random() * 20),
+            frequency: Math.floor(Math.random() * 20 + 1),
             transparency: Math.floor(Math.random() * 100),
           },
         });
