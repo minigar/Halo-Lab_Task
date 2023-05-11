@@ -19,9 +19,11 @@ async function main() {
   const config = new DocumentBuilder()
     .setTitle('swagger')
     .setDescription('sensor`s api documentation')
+    .setVersion('1.0')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
   SwaggerModule.setup('swagger', app, document);
 
   await app.listen(APP_PORT);
