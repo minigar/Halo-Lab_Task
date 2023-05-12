@@ -9,7 +9,7 @@ datasource db {
 
 model Sensor {
   id       Int    @id @default(autoincrement())
-  codename String
+  codename String @unique
 
   frequency    Int   @default(5)
   transparency Int   @default(100)
@@ -20,6 +20,8 @@ model Sensor {
   z Float @default(0)
 
   fishes  Fish[]
+  updates SensorUpdates[]
+
   groupId Int?
 
   group Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
@@ -46,4 +48,14 @@ model Fish {
 
   sensor   Sensor? @relation(fields: [sensorId], references: [id], onDelete: Cascade)
   sensorId Int?
+}
+
+model SensorUpdates {
+  id Int @id @default(autoincrement())
+
+  temperature Int
+  createdAt   DateTime @default(now())
+
+  sensor   Sensor @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  sensorId Int
 }

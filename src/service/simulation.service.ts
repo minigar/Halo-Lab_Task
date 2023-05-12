@@ -98,7 +98,9 @@ export class SimulationService {
 
         await this.db.sensor.update({
           where: { id: updatedSensor.id },
-          data: { lastUpdated: new Date() },
+          data: {
+            lastUpdated: new Date(),
+          },
         });
       }
     }
@@ -118,24 +120,34 @@ export class SimulationService {
       'Grouper',
     ];
 
+    const createFishes = Math.random() < 0.5;
+
+    const temperature =
+      sensor.z > 500
+        ? Math.floor(Math.random() * 10) + 15
+        : Math.floor(Math.random() * 10) + 10;
+
+    const data = {
+      x: Number((Math.random() * 100).toFixed(1)),
+      y: Number((Math.random() * 100).toFixed(1)),
+      z: Number((Math.random() * 1000).toFixed(1)),
+      transparency: Math.floor(Math.random() * 100),
+      temperature,
+      updates: { create: { temperature } },
+    };
+
+    if (createFishes) {
+      data['fishes'] = {
+        create: {
+          type: fishTypes[Math.floor(Math.random() * 10)],
+          count: Math.floor(Math.random() * 100 + 1),
+        },
+      };
+    }
+
     return await this.db.sensor.update({
       where: { id: sensor.id },
-      data: {
-        x: Number((Math.random() * 100).toFixed(1)),
-        y: Number((Math.random() * 100).toFixed(1)),
-        z: Number((Math.random() * 1000).toFixed(1)),
-        transparency: Math.floor(Math.random() * 100),
-        temperature:
-          sensor.z > 500
-            ? Math.floor(Math.random() * 10) + 15
-            : Math.floor(Math.random() * 10) + 10,
-        fishes: {
-          create: {
-            type: fishTypes[Math.floor(Math.random() * 10)],
-            count: Math.floor(Math.random() * 100 + 1),
-          },
-        },
-      },
+      data,
     });
   }
 }

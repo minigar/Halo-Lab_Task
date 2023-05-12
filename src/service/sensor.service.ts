@@ -1,24 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import { SensorErrorKey } from 'src/controllers/errorKeys/SensorErrorKey';
+import {
+  DateTimeErrorKey,
+  GroupErrorKey,
+  SensorErrorKey,
+} from 'src/controllers/errorKeys/TaskErrorKey';
 import { DatabaseService } from 'src/data/database.service';
 import { BusinessError } from 'src/errors/businessError';
+import {
+  AverageTemperature,
+  AverageTransparency,
+  AxisType,
+  Fish,
+} from 'src/models/Task.dto';
 
 @Injectable()
 export class SensorService {
   constructor(private readonly db: DatabaseService) {}
 
-  async groupAverageTemperature(groupName: string): Promise<{
-    groupName: string;
-    temperature: number;
-    sensorsAmount: number;
-  }> {
+  async groupAverageTemperature(
+    groupName: string,
+  ): Promise<AverageTemperature> {
     const group = await this.db.group.findUnique({
       where: { name: groupName },
       include: { sensors: true, _count: true },
     });
 
     if (!group) {
-      throw new BusinessError(SensorErrorKey.GROUP_NOT_EXIST);
+      throw new BusinessError(GroupErrorKey.GROUP_NOT_EXIST);
     }
 
     const sensors = group.sensors;
@@ -36,18 +44,16 @@ export class SensorService {
     };
   }
 
-  async groupAverageTransparency(groupName: string): Promise<{
-    groupName: string;
-    transparency: number;
-    sensorsAmount: number;
-  }> {
+  async groupAverageTransparency(
+    groupName: string,
+  ): Promise<AverageTransparency> {
     const group = await this.db.group.findUnique({
       where: { name: groupName },
       include: { sensors: true, _count: true },
     });
 
     if (!group) {
-      throw new BusinessError(SensorErrorKey.GROUP_NOT_EXIST);
+      throw new BusinessError(GroupErrorKey.GROUP_NOT_EXIST);
     }
 
     const sensors = group.sensors;
@@ -64,16 +70,14 @@ export class SensorService {
     };
   }
 
-  async groupSpecies(
-    groupName: string,
-  ): Promise<{ type: string; count: number }[]> {
+  async groupSpecies(groupName: string): Promise<Fish[]> {
     const group = await this.db.group.findUnique({
       where: { name: groupName },
       select: { name: true, _count: true },
     });
 
     if (!group) {
-      throw new BusinessError(SensorErrorKey.GROUP_NOT_EXIST);
+      throw new BusinessError(GroupErrorKey.GROUP_NOT_EXIST);
     }
 
     const sensors = await this.db.sensor.findMany({
@@ -100,23 +104,18 @@ export class SensorService {
     }));
   }
 
-  async groupTopSpecies(
-    groupName: string,
-    topN: number,
-  ): Promise<{ type: string; count: number }[]> {
+  async groupTopSpecies(groupName: string, topN: number): Promise<Fish[]> {
     const group = await this.db.group.findUnique({
       where: { name: groupName },
-      select: { name: true, _count: true },
+      select: { name: true },
     });
 
     if (!group) {
-      throw new BusinessError(SensorErrorKey.GROUP_NOT_EXIST);
+      throw new BusinessError(GroupErrorKey.GROUP_NOT_EXIST);
     }
 
     const sensors = await this.db.sensor.findMany({
-      where: {
-        group: { name: groupName },
-      },
+      where: { group: { name: groupName } },
       include: {
         fishes: true,
       },
@@ -137,15 +136,97 @@ export class SensorService {
       .map(([type, count]) => ({ type, count }));
   }
 
-  async regionMinTemperature() {
-    return 0;
+  async regionMinTemperature(payload: AxisType): Promise<number> {
+    const sensor = await this.db.sensor.findFirst({
+      where: {
+        x: { gte: payload.xMin, lte: payload.xMax },
+        y: { gte: payload.yMin, lte: payload.yMax },
+        z: { gte: payload.zMin, lte: payload.zMax },
+      },
+      orderBy: {
+        temperature: 'asc',
+      },
+      select: {
+        temperature: true,
+      },
+    });
+
+    return sensor?.temperature ?? 0;
   }
 
-  async regionMaxTemperature() {
-    return 0;
+  async regionMaxTemperature(payload: AxisType): Promise<number> {
+    const sensor = await this.db.sensor.findFirst({
+      where: {
+        x: { gte: payload.xMin, lte: payload.xMax },
+        y: { gte: payload.yMin, lte: payload.yMax },
+        z: { gte: payload.zMin, lte: payload.zMax },
+      },
+      orderBy: {
+        temperature: 'desc',
+      },
+      select: {
+        temperature: true,
+      },
+    });
+
+    return sensor?.temperature ?? 0;
   }
 
-  async senorAverageByDate(codeName: string) {
-    return 0;
+  async senorAverageByDate(
+    codeName: string,
+    fromDateTime: number,
+    untillDateTime: number,
+  ): Promise<number> {
+    let from: Date;
+    let till: Date;
+
+    if (fromDateTime) from = new Date(fromDateTime);
+
+    if (fromDateTime && fromDateTime < 0) {
+      throw new BusinessError(DateTimeErrorKey.BAD_TIME_REQUEST);
+    }
+
+    if (fromDateTime) till = new Date(untillDateTime);
+
+    if (untillDateTime && untillDateTime < 0) {
+      throw new BusinessError(DateTimeErrorKey.BAD_TIME_REQUEST);
+    }
+
+    const sensor = await this.db.sensor.findFirst({
+      where: {
+        codename: codeName,
+      },
+      include: {
+        updates: {
+          orderBy: { createdAt: 'asc' },
+          select: { temperature: true, createdAt: true },
+          where: {
+            createdAt: {
+              gte: from,
+              lte: till,
+            },
+          },
+        },
+      },
+    });
+
+    if (!sensor) {
+      throw new BusinessError(SensorErrorKey.SENSOR_NOT_EXIST);
+    }
+
+    if (!sensor.updates.length) {
+      throw new BusinessError(
+        `Updates from ${from.getUTCDate()} till ${till} NOT found!`,
+      );
+    }
+
+    const updates = sensor.updates;
+
+    let averageTemperature = 0;
+    for (let i = 0; i < updates.length; i++) {
+      averageTemperature += updates[i].temperature;
+    }
+
+    return Number((averageTemperature / updates.length).toFixed(1));
   }
 }

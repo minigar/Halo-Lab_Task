@@ -23,8 +23,9 @@ export class ServiceModule implements OnModuleInit {
     private readonly simulationService: SimulationService,
     private readonly queueService: QueueService,
   ) {}
+
   async onModuleInit() {
-    await this.simulationService.generateOnStart();
+    await this.queueService.add(await this.simulationService.generateOnStart());
     await this.queueService.add(
       await this.simulationService.updateSensorsByFrequency(),
     );
