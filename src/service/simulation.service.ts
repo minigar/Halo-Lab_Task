@@ -105,6 +105,19 @@ export class SimulationService {
   }
 
   async updateSensor(sensor: Sensor) {
+    const fishTypes = [
+      'Atlantic Cod',
+      'Sailfish',
+      'Blue Marlin',
+      'Mahi Mahi',
+      'Rainbow Trout',
+      'Salmon',
+      'Yellowfin Tuna',
+      'Mackerel',
+      'Red Snapper',
+      'Grouper',
+    ];
+
     return await this.db.sensor.update({
       where: { id: sensor.id },
       data: {
@@ -116,6 +129,12 @@ export class SimulationService {
           sensor.z > 500
             ? Math.floor(Math.random() * 10) + 15
             : Math.floor(Math.random() * 10) + 10,
+        fishes: {
+          create: {
+            type: fishTypes[Math.floor(Math.random() * 10)],
+            count: Math.floor(Math.random() * 100 + 1),
+          },
+        },
       },
     });
   }
