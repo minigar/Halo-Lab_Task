@@ -44,9 +44,9 @@ npx prisma migrate dev --name init
 npx prisma studio
 ```
 
-#### Swagger
+#### Swagger documentation
 ```bash
-http://localhost:<PORT>/swagger
+http://localhost:<PORT>/api
 ```
 
 #### Start Server(or in dev mode)
